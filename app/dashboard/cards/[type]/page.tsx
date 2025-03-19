@@ -12,7 +12,14 @@ export function generateStaticParams() {
   ];
 }
 
-export default function CardsPage({ params }: { params: { type: string } }) {
+interface PageProps {
+  params: {
+    type: string;
+  };
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default function CardsPage({ params }: PageProps) {
   const type = params.type;
 
   if (!['all', 'sold', 'checked', 'unchecked'].includes(type)) {
