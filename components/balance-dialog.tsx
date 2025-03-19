@@ -14,7 +14,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Plus, Loader2 } from 'lucide-react';
-import { createCoinbaseCharge } from '@/lib/coinbase';
 import { useToast } from '@/components/ui/use-toast';
 
 interface BalanceDialogProps {
@@ -34,55 +33,13 @@ export function BalanceDialog({ onAddBalance }: BalanceDialogProps) {
     setError(null);
     let paymentWindow: Window | null = null;
 
-    try {
-      const numAmount = parseFloat(amount);
-      if (isNaN(numAmount) || numAmount <= 0) {
-        throw new Error('Please enter a valid amount');
-      }
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error('Not authenticated');
-      }
-
-      const payment = await createCoinbaseCharge(numAmount);
-      
-      if (!payment?.url) {
-        throw new Error('No payment URL received');
-      }
-
-      // Open payment URL in new window
-      paymentWindow = window.open(payment.url, '_blank');
-      if (!paymentWindow) {
-        throw new Error('Pop-up blocked. Please allow pop-ups and try again.');
-      }
-      
-      setOpen(false);
-      setAmount('');
-      
-      toast({
-        title: 'Payment Initiated',
-        description: 'Please complete your payment. Your balance will be updated automatically once the payment is confirmed.',
-      });
-    } catch (error: any) {
-      console.error('Error creating payment:', error);
-      const errorMessage = error.message || 'Unable to process payment. Please try again.';
-      setError(errorMessage);
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-      if (!paymentWindow?.closed) {
-        const checkWindow = setInterval(() => {
-          if (paymentWindow?.closed) {
-            clearInterval(checkWindow);
-          }
-        }, 1000);
-      }
-    }
+    // TODO: Implement payment processing
+    setLoading(false);
+    setOpen(false);
+    toast({
+      title: "Coming Soon",
+      description: "Payment processing is currently unavailable."
+    });
   };
 
   return (
