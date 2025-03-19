@@ -8,7 +8,7 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
 
   // Public routes that don't require authentication
-  const publicRoutes = ['/', '/login', '/signup', '/admin'];
+  const publicRoutes = ['/', '/admin'];
   if (publicRoutes.includes(request.nextUrl.pathname)) {
     return res;
   }
@@ -29,25 +29,16 @@ export async function middleware(request: NextRequest) {
   console.log('Middleware - Site User Data:', siteUser);
   console.log('Middleware - Error:', error);
 
-  // If there's an error or no site user found, treat as customer
+  // If there's an error or no site user found, redirect to home
   if (error || !siteUser) {
-    console.log('Middleware - No site user found or error, treating as customer');
-    if (request.nextUrl.pathname.startsWith('/dashboard')) {
-      return NextResponse.redirect(new URL('/shop', request.url));
-    }
-    return res;
+    console.log('Middleware - No site user found or error');
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Restrict dashboard access to admins only
   if (request.nextUrl.pathname.startsWith('/dashboard') && siteUser.role !== 'admin') {
     console.log('Middleware - Non-admin attempting to access dashboard');
-    return NextResponse.redirect(new URL('/shop', request.url));
-  }
-
-  // Restrict shop access to customers only
-  if (request.nextUrl.pathname.startsWith('/shop') && siteUser.role === 'admin') {
-    console.log('Middleware - Admin attempting to access shop');
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   return res;

@@ -6,7 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Home, CreditCard, LogIn, FileText, Menu } from 'lucide-react';
+import { Home, CreditCard, LogIn, FileText, Menu, ChevronDown, Wrench } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const sidebarNavItems = [
   {
@@ -16,8 +22,25 @@ const sidebarNavItems = [
   },
   {
     title: 'Cards',
-    href: '/dashboard/cards',
     icon: CreditCard,
+    items: [
+      {
+        title: 'All Cards',
+        href: '/dashboard/cards/all',
+      },
+      {
+        title: 'Sold Cards',
+        href: '/dashboard/cards/sold',
+      },
+      {
+        title: 'Checked Cards',
+        href: '/dashboard/cards/checked',
+      },
+      {
+        title: 'Unchecked Cards',
+        href: '/dashboard/cards/unchecked',
+      }
+    ],
   },
   {
     title: 'Logins',
@@ -28,6 +51,16 @@ const sidebarNavItems = [
     title: 'Logs',
     href: '/dashboard/logs',
     icon: FileText,
+  },
+  {
+    title: 'Tools',
+    icon: Wrench,
+    items: [
+      {
+        title: 'Card Checker',
+        href: '/dashboard/tools/card-checker',
+      }
+    ],
   },
 ];
 
@@ -62,23 +95,60 @@ export function Sidebar({ className }: SidebarProps) {
             <div className="space-y-1">
               <nav className="grid gap-1 px-2">
                 {sidebarNavItems.map((item, index) => (
-                  <Link
-                    key={index}
-                    href={item.href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground',
-                      pathname === item.href ? 'bg-accent' : 'transparent',
-                      isCollapsed && 'justify-center'
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className={cn(
-                      'transition-all',
-                      isCollapsed && 'hidden'
-                    )}>
-                      {item.title}
-                    </span>
-                  </Link>
+                  item.items ? (
+                    <DropdownMenu key={index}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className={cn(
+                            'w-full justify-start gap-2',
+                            item.items.some(subItem => pathname === subItem.href) && 'bg-accent'
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                          {!isCollapsed && (
+                            <>
+                              <span>{item.title}</span>
+                              <ChevronDown className="h-4 w-4 ml-auto" />
+                            </>
+                          )}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {item.items.map((subItem, subIndex) => (
+                          <DropdownMenuItem key={subIndex} asChild>
+                            <Link
+                              href={subItem.href}
+                              className={cn(
+                                'w-full',
+                                pathname === subItem.href && 'bg-accent'
+                              )}
+                            >
+                              {subItem.title}
+                            </Link>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Link
+                      key={index}
+                      href={item.href}
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground',
+                        pathname === item.href ? 'bg-accent' : 'transparent',
+                        isCollapsed && 'justify-center'
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className={cn(
+                        'transition-all',
+                        isCollapsed && 'hidden'
+                      )}>
+                        {item.title}
+                      </span>
+                    </Link>
+                  )
                 ))}
               </nav>
             </div>
