@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
 
   // Redirect to login if not authenticated
   if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // Get user role from site_users table
@@ -40,7 +40,6 @@ export async function middleware(request: NextRequest) {
     console.log('Middleware - Non-admin attempting to access dashboard');
     return NextResponse.redirect(new URL('/', request.url));
   }
-
   return res;
 }
 
