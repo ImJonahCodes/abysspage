@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
@@ -107,7 +107,7 @@ const US_STATES = [
   { name: 'Wyoming', abbr: 'WY' }
 ];
 
-export default function CardsClient({ type }: { type: string }) {
+export default function CardsClient() {
   const { toast } = useToast();
   const router = useRouter();
   const [cards, setCards] = useState<PaymentInfo[]>([]);
@@ -120,6 +120,9 @@ export default function CardsClient({ type }: { type: string }) {
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [showActionDialog, setShowActionDialog] = useState<'sold' | 'checked' | null>(null);
   const [actionNotes, setActionNotes] = useState('');
+
+  const pathname = usePathname();
+  const type = pathname.split('/').pop() || 'all';
 
   useEffect(() => {
     async function fetchCards() {
