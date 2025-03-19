@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { Home, CreditCard, LogIn, FileText, Menu, ChevronDown, Wrench } from 'lucide-react';
+import { Home, CreditCard, LogIn, FileText, Menu, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,16 +51,6 @@ const sidebarNavItems = [
     title: 'Logs',
     href: '/dashboard/logs',
     icon: FileText,
-  },
-  {
-    title: 'Tools',
-    icon: Wrench,
-    items: [
-      {
-        title: 'Card Checker',
-        href: '/dashboard/tools/card-checker',
-      }
-    ],
   },
 ];
 
