@@ -92,23 +92,31 @@ export function Sidebar({ className }: SidebarProps) {
                   item.items ? (
                     <DropdownMenu key={index}>
                       <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            'w-full justify-start gap-2 hidden md:flex',
-                            item.items.some(subItem => pathname === subItem.href) && 'bg-accent'
-                          )}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          {!isCollapsed && (
-                            <>
-                              <span>{item.title}</span>
-                              <ChevronDown className="h-4 w-4 ml-auto" />
-                            </>
-                          )}
-                        </Button>
+                        <div>
+                          <Button
+                            variant="ghost"
+                            className={cn(
+                              'w-full justify-start gap-2',
+                              item.items.some(subItem => pathname === subItem.href) && 'bg-accent',
+                              isCollapsed && 'justify-center'
+                            )}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            {!isCollapsed && (
+                              <>
+                                <span>{item.title}</span>
+                                <ChevronDown className="h-4 w-4 ml-auto" />
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent>
+                      <DropdownMenuContent
+                        className={cn(
+                          "w-56",
+                          isCollapsed && "ml-2"
+                        )}
+                      >
                         {item.items.map((subItem, subIndex) => (
                           <DropdownMenuItem key={subIndex} asChild>
                             <Link
@@ -131,13 +139,13 @@ export function Sidebar({ className }: SidebarProps) {
                       className={cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground',
                         pathname === item.href ? 'bg-accent' : 'transparent',
-                        isCollapsed && 'justify-center hidden md:flex'
+                        isCollapsed && 'justify-center'
                       )}
                     >
                       <item.icon className="h-4 w-4" />
                       <span className={cn(
                         'transition-all',
-                        isCollapsed && 'hidden md:hidden'
+                        isCollapsed && 'hidden'
                       )}>
                         {item.title}
                       </span>
