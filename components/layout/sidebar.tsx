@@ -61,24 +61,28 @@ export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className={cn('relative bg-background', className)}>
+    <div className={cn('relative bg-background flex flex-col', className)}>
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-2 top-2 h-6 w-6"
+        className={cn(
+          "absolute right-2 top-2 h-6 w-6",
+          isCollapsed && "relative right-0 top-0 w-full rounded-none h-12 justify-center"
+        )}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <Menu className="h-4 w-4" />
       </Button>
       <div className={cn(
-        'pb-12 transition-all duration-300 ease-in-out',
-        isCollapsed ? 'w-16' : 'w-64'
+        'transition-all duration-300 ease-in-out',
+        isCollapsed ? 'w-12 hidden md:block' : 'w-64',
+        isCollapsed && 'md:w-16'
       )}>
         <div className="space-y-4 py-4">
           <div className="px-3 py-2">
             <h2 className={cn(
               "mb-2 px-4 text-lg font-semibold tracking-tight transition-all",
-              isCollapsed && "opacity-0"
+              isCollapsed && "hidden md:block md:opacity-0"
             )}>
               Dashboard
             </h2>
@@ -91,7 +95,7 @@ export function Sidebar({ className }: SidebarProps) {
                         <Button
                           variant="ghost"
                           className={cn(
-                            'w-full justify-start gap-2',
+                            'w-full justify-start gap-2 hidden md:flex',
                             item.items.some(subItem => pathname === subItem.href) && 'bg-accent'
                           )}
                         >
@@ -127,13 +131,13 @@ export function Sidebar({ className }: SidebarProps) {
                       className={cn(
                         'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all hover:bg-accent hover:text-accent-foreground',
                         pathname === item.href ? 'bg-accent' : 'transparent',
-                        isCollapsed && 'justify-center'
+                        isCollapsed && 'justify-center hidden md:flex'
                       )}
                     >
                       <item.icon className="h-4 w-4" />
                       <span className={cn(
                         'transition-all',
-                        isCollapsed && 'hidden'
+                        isCollapsed && 'hidden md:hidden'
                       )}>
                         {item.title}
                       </span>
